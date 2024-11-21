@@ -14,7 +14,7 @@ UPLOAD_FOLDER = './static/pp'
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'SE Pot!!!**%%##WooJ'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://flaskycon:^Dev3l0pmEnt!!@localhost/alumnyydb'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/alumnyy'
     db.init_app(app)
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER

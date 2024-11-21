@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from .models import user, db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user, current_user
-
+from sqlalchemy import text
 auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['POST', 'GET'])
@@ -15,7 +15,8 @@ def login():
         
         if User:
             if check_password_hash(User.password, password):
-                db.session.execute('UPDATE user SET online = :val WHERE id = :ID', {'val': 1, 'ID': User.id} )
+                query= text('UPDATE user SET online = :val WHERE id = :ID')
+                db.session.execute(query, {'val': 1, 'ID': User.id} )
                 db.session.commit()
                 flash('Logged in successfully.', category='success')
                 login_user(User, remember=True)
@@ -73,7 +74,7 @@ def signup():
             flash('Password must be longer than 7 characters!', category='error')
         else:
             newuser = user(fullname=fullname, country=country, school=school, programme=programme, mobilenumber=mobilenumber,
-                    email=email, occupation=occupation, organisation=organisation, year=year, password=generate_password_hash(password1, method='sha256'))
+                    email=email, occupation=occupation, organisation=organisation, year=year, password=generate_password_hash(password1, method='pbkdf2:sha256'))
 
             db.session.add(newuser)
             db.session.commit()
@@ -88,7 +89,7 @@ def signup():
 @auth.route('/logout')
 @login_required
 def logout():
-    db.session.execute('UPDATE user SET online = :val WHERE id = :ID', {'val': 0, 'ID': current_user.id} )
+    db.session.execute(text('UPDATE user SET online = :val WHERE id = :ID'), {'val': 0, 'ID': current_user.id})
     db.session.commit()
     logout_user()
     return redirect(url_for('auth.login'))

@@ -18,7 +18,7 @@ class user(db.Model, UserMixin):
     year = db.Column(db.Integer)
     bio = db.Column(db.String(800))
     password = db.Column(db.String(255))
-    online = db.Column(db.Integer)
+    online = db.Column(db.Integer, default=0)
     post = db.relationship('post', backref='post')
 
     def __init__(self, fullname, country, school, programme, mobilenumber, 

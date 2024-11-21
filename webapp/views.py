@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for,
 from flask_login import login_required, current_user
 from .models import user as User, post as Post, connect as Connect, approvedconnection as ApprovedConnection, db
 from  sqlalchemy.sql.expression import func
+from sqlalchemy import text
 from werkzeug.utils import secure_filename
 import os
 from . import *
@@ -12,7 +13,7 @@ views = Blueprint('views', __name__)
 def index():
     """Displays six random alumni and schools"""
     alumni = User.query.order_by(func.rand()).limit(4)
-    schools = db.session.execute('SELECT DISTINCT school FROM user  ORDER BY RAND() LIMIT 8')
+    schools = db.session.execute(text('SELECT DISTINCT school FROM user  ORDER BY RAND() LIMIT 8'))
     return render_template("index.html", alumni=alumni, schools=schools)
 
 @views.route('/home')
@@ -32,7 +33,8 @@ def about():
 def profile():
     """Returns profile of alumnus of interest"""
     id = request.args.get('id')
-    alumnus = db.session.execute('SELECT * FROM user WHERE id = :val', {'val': id})
+    query = text('SELECT * FROM user WHERE id = :val')
+    alumnus = db.session.execute(query, {'val': id})
     return render_template("profile.html", user=current_user, alumnus=alumnus)
 
 @views.route('/request_connection', methods=['GET'])
@@ -51,25 +53,28 @@ def requestconnection():
 def connectprofile():
     """Returns profile of alumnus connected with"""
     id = request.args.get('id')
-    alumnus = db.session.execute('SELECT * FROM user WHERE id = :val', {'val': id})
+    alumnus = db.session.execute(text('SELECT * FROM user WHERE id = :val', {'val': id}))
     return render_template("connectprofile.html", user=current_user, alumnus=alumnus)
 
 @views.route('/pendingrequest')
 @login_required
 def connection_request():
     """Returns alumni who have been sent a connection request"""
-    requested_connections = db.session.execute('SELECT * FROM user INNER JOIN connect ON\
-         user.id = connect.recid WHERE connect.initid = :val', {'val': current_user.id})
+    query = text('SELECT * FROM user INNER JOIN connect ON\
+         user.id = connect.recid WHERE connect.initid = :val')
+    requested_connections = db.session.execute(query, {'val': current_user.id})
     return render_template('pendingrequests.html', requested_connections = requested_connections)
 
 @views.route('/connections')
 @login_required
 def connections():
     """Returns alumni connections"""
-    approved_sent_connections = db.session.execute('SELECT * FROM user INNER JOIN approvedconnection ON\
-         user.id = approvedconnection.connectb WHERE approvedconnection.connecta  = :val', {'val': current_user.id})
-    approved_request_connections = db.session.execute('SELECT * FROM user INNER JOIN approvedconnection ON\
-         user.id = approvedconnection.connecta WHERE approvedconnection.connectb = :val', {'val': current_user.id})
+    query = text('SELECT * FROM user INNER JOIN approvedconnection ON\
+         user.id = approvedconnection.connectb WHERE approvedconnection.connecta  = :val')
+    query1=text('SELECT * FROM user INNER JOIN approvedconnection ON\
+         user.id = approvedconnection.connecta WHERE approvedconnection.connectb = :val')
+    approved_sent_connections = db.session.execute(query, {'val': current_user.id})
+    approved_request_connections = db.session.execute(query1, {'val': current_user.id})
     return render_template('connections.html', approved_sent_connections = approved_sent_connections,\
          approved_request_connections = approved_request_connections)
 
@@ -77,8 +82,9 @@ def connections():
 @login_required
 def connection_approve():
     """Returns alumni who want to connect"""
-    approve_connections = db.session.execute('SELECT * FROM user INNER JOIN connect ON user.id = connect.initid WHERE\
-         connect.recid = :val', {'val': current_user.id})
+    query=text('SELECT * FROM user INNER JOIN connect ON user.id = connect.initid WHERE\
+         connect.recid = :val')
+    approve_connections = db.session.execute(query, {'val': current_user.id})
     return render_template('pendingapprovals.html', approve_connections = approve_connections)
 
 @views.route('/approval', methods=['GET'])
@@ -123,8 +129,9 @@ def connection_decline():
 @login_required 
 def posts():
     """Returns posts by alma mater alumni"""
-    posts = db.session.execute('SELECT * FROM user INNER JOIN post ON user.id = post.userid WHERE\
-         user.school = :val ORDER BY post.date DESC', {'val': current_user.school})
+    query = text('SELECT * FROM user INNER JOIN post ON user.id = post.userid WHERE\
+         user.school = :val ORDER BY post.date DESC')
+    posts = db.session.execute(query, {'val': current_user.school})
     return render_template("posts.html", user=current_user, posts=posts)
 
 @views.route('/post', methods=['GET', 'POST'])
@@ -190,7 +197,8 @@ def upload():
             file.save(os.path.join(basedir,
                                        app.config['UPLOAD_FOLDER'], filename))
             filepath = UPLOAD_FOLDER + '/' + filename
-            db.session.execute('UPDATE user SET avatar = :val WHERE id = :ID', {'val': filepath, 'ID': current_user.id} )
+            query = text('UPDATE user SET avatar = :val WHERE id = :ID')
+            db.session.execute(query, {'val': filepath, 'ID': current_user.id} )
             db.session.commit()
             flash('Profile picture successfully uploaded')
             return redirect(url_for("views.my_profile"))
@@ -204,10 +212,12 @@ def chats():
     """Messages sent to or received from fellow alumni"""
 
     # Get connections
-    approved_sent_connections = db.session.execute('SELECT * FROM user INNER JOIN approvedconnection ON\
-         user.id = approvedconnection.connectb WHERE approvedconnection.connecta  = :val', {'val': current_user.id})
-    approved_request_connections = db.session.execute('SELECT * FROM user INNER JOIN approvedconnection ON\
-         user.id = approvedconnection.connecta WHERE approvedconnection.connectb = :val', {'val': current_user.id})
+    query = text('SELECT * FROM user INNER JOIN approvedconnection ON\
+         user.id = approvedconnection.connectb WHERE approvedconnection.connecta  = :val')
+    query1 = text('SELECT * FROM user INNER JOIN approvedconnection ON\
+         user.id = approvedconnection.connecta WHERE approvedconnection.connectb = :val')
+    approved_sent_connections = db.session.execute(query, {'val': current_user.id})
+    approved_request_connections = db.session.execute(query1, {'val': current_user.id})
 
     return render_template("chats.html", approved_sent_connections=approved_sent_connections,\
          approved_request_connections=approved_request_connections)
