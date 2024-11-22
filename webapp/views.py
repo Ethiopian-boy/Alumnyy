@@ -123,7 +123,7 @@ def connection_decline():
         Connect.query.filter(Connect.initid == decline).delete()
         db.session.commit()
         flash('Connection declined!', category='success')
-        return redirect(url_for('views.pendingapproval'))
+        return redirect(url_for('views.connection_approval'))
 
 @views.route('/posts')
 @login_required 
